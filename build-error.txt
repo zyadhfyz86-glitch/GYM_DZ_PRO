@@ -1,0 +1,6 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.6.0/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Warning: Unable to set daemon's environment variables to match the client because: 
+  There is no native integration with this operating environment.
+  If the daemon was started with a significantly different environment from the client, and your build 
+  relies on environment variables, you may experience unexpected behavior.
+Daemon will be stopped at the end of the build 

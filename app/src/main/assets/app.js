@@ -5,8 +5,171 @@ const save=()=>localStorage.setItem(KEY,JSON.stringify(state));
 const MEMBERS_KEY='gymdzpro_members_v1';
 const getMembers=()=>{try{return JSON.parse(localStorage.getItem(MEMBERS_KEY)||'[]')}catch{return[]}};
 const saveMembers=m=>localStorage.setItem(MEMBERS_KEY,JSON.stringify(m));
+const memberById=id=>getMembers().find(m=>m.id===id)||null;
+const memberPayments=m=>Array.isArray(m?.payments)?m.payments:[];
+const memberAttendance=m=>Array.isArray(m?.attendance)?m.attendance:[];
+const saveMember=m=>{const all=getMembers();const i=all.findIndex(x=>x.id===m.id);if(i<0)all.push(m);else all[i]=m;saveMembers(all);members=all;};
 let members=getMembers();
 function memberId(){return 'GYM-'+Date.now().toString(36).toUpperCase()+'-'+Math.random().toString(36).slice(2,6).toUpperCase()}
+function showMemberQR(m){
+ const modal=$('#qrModal'),box=$('#qrCanvas');
+ if(!modal||!box||!m)return;
+ $('#qrMemberName').textContent=m.name||'منخرط';
+ const st=memberStatus(m);
+ const label=st==='active'?'نشط':st==='soon'?'قريب الانتهاء':st==='expired'?'منتهي':'بدون اشتراك';
+ $('#qrMemberInfo').textContent=`${m.id} · ${label} · ينتهي ${m.endDate||'—'}`;
+ box.innerHTML='';
+ if(typeof qrcode!=='function'){toast('مولّد QR غير متوفر');return;}
+ const qr=qrcode(0,'M');
+ qr.addData(JSON.stringify({type:'GYM-DZ-PRO-MEMBER',id:m.id}));
+ qr.make();
+ box.innerHTML=qr.createSvgTag({cellSize:5,margin:2});
+ modal.classList.remove('hidden');
+}
+$('#closeQrModal')?.addEventListener('click',()=>$('#qrModal')?.classList.add('hidden'));
+
+let qrStream=null;
+let qrScanTimer=null;
+let qrScanBusy=false;
+
+function stopQrScanner(){
+ if(qrScanTimer){clearTimeout(qrScanTimer);qrScanTimer=null}
+ if(qrStream){
+  qrStream.getTracks().forEach(t=>t.stop());
+  qrStream=null;
+ }
+ const video=$('#qrVideo');
+ if(video){video.pause();video.srcObject=null}
+ qrScanBusy=false;
+}
+
+function qrScanResult(id){
+ const m=memberById(id);
+ if(!m){
+  toast('الـ QR لا يخص منخرطاً مسجلاً');
+  return false;
+ }
+
+ const arr=memberAttendance(m);
+ const today=new Date().toISOString().slice(0,10);
+ if(arr.some(x=>x.date===today)){
+  toast(`الحضور مسجل اليوم: ${m.name}`);
+  return true;
+ }
+
+ const now=new Date();
+ arr.push({
+  date:today,
+  time:now.toLocaleTimeString('ar-DZ',{hour:'2-digit',minute:'2-digit'})
+ });
+ m.attendance=arr;
+ saveMember(m);
+
+ if(typeof renderMembers==='function')renderMembers();
+ if(typeof renderAttendance==='function')renderAttendance();
+ if(typeof render==='function')render();
+
+ const st=memberStatus(m);
+ if(st==='expired'){
+  toast(`⚠️ ${m.name}: الاشتراك منتهي، لم يُسجل الحضور`);
+  arr.pop();
+  saveMember(m);
+  return true;
+ }
+
+ toast(`✓ تم تسجيل حضور ${m.name}`);
+ return true;
+}
+
+async function startQrScanner(){
+ const modal=$('#scanQrModal');
+ const video=$('#qrVideo');
+ const canvas=$('#qrScanCanvas');
+ const status=$('#qrScanStatus');
+
+ if(!modal||!video||!canvas)return;
+
+ if(typeof jsQR!=='function'){
+  toast('ماسح QR غير متوفر');
+  return;
+ }
+
+ stopQrScanner();
+ modal.classList.remove('hidden');
+ if(status)status.textContent='جاري تشغيل الكاميرا...';
+
+ try{
+  qrStream=await navigator.mediaDevices.getUserMedia({
+   video:{facingMode:{ideal:'environment'}},
+   audio:false
+  });
+
+  video.srcObject=qrStream;
+  await video.play();
+
+  if(status)status.textContent='وجّه الكاميرا نحو QR المنخرط';
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});
+
+  const scan=()=>{
+   if(!qrStream||video.readyState<2){
+    qrScanTimer=setTimeout(scan,120);
+    return;
+   }
+
+   const w=video.videoWidth;
+   const h=video.videoHeight;
+
+   if(!w||!h){
+    qrScanTimer=setTimeout(scan,120);
+    return;
+   }
+
+   canvas.width=w;
+   canvas.height=h;
+   ctx.drawImage(video,0,0,w,h);
+
+   const image=ctx.getImageData(0,0,w,h);
+   const code=jsQR(image.data,w,h,{inversionAttempts:'attemptBoth'});
+
+   if(code&&code.data&&!qrScanBusy){
+    qrScanBusy=true;
+
+    try{
+     const data=JSON.parse(code.data);
+     if(data.type!=='GYM-DZ-PRO-MEMBER'||!data.id){
+      throw new Error('INVALID_QR');
+     }
+
+     stopQrScanner();
+     modal.classList.add('hidden');
+     qrScanResult(data.id);
+     return;
+    }catch(e){
+     qrScanBusy=false;
+     if(status)status.textContent='هذا QR غير صالح. وجّه الكاميرا نحو QR المنخرط';
+    }
+   }
+
+   qrScanTimer=setTimeout(scan,120);
+  };
+
+  scan();
+ }catch(e){
+  console.error(e);
+  stopQrScanner();
+  if(status)status.textContent='تعذر تشغيل الكاميرا. تأكد من منح صلاحية الكاميرا.';
+  toast('تعذر تشغيل الكاميرا');
+ }
+}
+
+$('#scanQrBtn')?.addEventListener('click',startQrScanner);
+
+$('#closeScanQrModal')?.addEventListener('click',()=>{
+ stopQrScanner();
+ $('#scanQrModal')?.classList.add('hidden');
+});
+
+
 function memberStatus(m){if(!m.endDate)return 'none';const d=Math.ceil((new Date(m.endDate+'T23:59:59')-new Date())/86400000);if(d<0)return 'expired';if(d<=7)return 'soon';return 'active'}
 function renderMembers(){
  const list=$('#membersList');if(!list)return;
@@ -20,15 +183,48 @@ function renderMembers(){
  list.innerHTML=filtered.length?filtered.map(m=>{
   const st=memberStatus(m);
   const label=st==='active'?'نشط':st==='soon'?'قريب الانتهاء':st==='expired'?'منتهي':'بدون اشتراك';
-  return '<article class="measurement"><span><b>'+m.name+'</b><br><small>'+(m.phone||'لا يوجد هاتف')+'</small></span><span>'+label+' · '+(m.endDate||'—')+'</span></article>';
+  const pays=memberPayments(m);
+  const attends=memberAttendance(m);
+  const total=pays.reduce((a,x)=>a+Number(x.amount||0),0);
+  return `<article class="measurement member-card">
+   <div><b>${m.name}</b><br><small>${m.phone||'لا يوجد هاتف'} · ${label} · ينتهي ${m.endDate||'—'}</small>
+   <br><small>المدفوع: ${money(total)} دج · الحضور: ${attends.length}</small></div>
+   <div class="member-actions">
+    <button type="button" data-member-action="qr" data-member-id="${m.id}">▣ QR</button>
+    <button type="button" data-member-action="attendance" data-member-id="${m.id}">✓ حضور</button>
+    <button type="button" data-member-action="payment" data-member-id="${m.id}">💳 دفع</button>
+    <button type="button" data-member-action="delete" data-member-id="${m.id}">حذف</button>
+   </div>
+  </article>`;
  }).join(''):'<p class="muted">لا يوجد منخرطون بعد.</p>';
 }
 
-const goalName={muscle:'بناء العضلات',cut:'تنشيف',strength:'القوة',fitness:'لياقة'};
-const levelName={beginner:'مبتدئ',intermediate:'متوسط',advanced:'متقدم'};
-function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2200)}
-function nav(v){$$('.view').forEach(x=>x.classList.remove('active'));$('#view-'+v).classList.add('active');$$('.bottom-nav button').forEach(x=>x.classList.toggle('active',x.dataset.nav===v));render();scrollTo({top:0,behavior:'smooth'})}
-$('[data-nav]').forEach(b=>b.addEventListener('click',()=>nav(b.dataset.nav)));$('#memberSearch')?.addEventListener('input',renderMembers);
+$('#membersList')?.addEventListener('click',e=>{
+ const b=e.target.closest('[data-member-action]');if(!b)return;
+ const id=b.dataset.memberId;
+ const m=memberById(id);if(!m)return;
+ const action=b.dataset.memberAction;
+ if(action==='qr'){showMemberQR(m);return;}
+ if(action==='attendance'){
+  const d=today();
+  m.attendance=memberAttendance(m);
+  if(m.attendance.some(x=>x.date===d))return toast('تم تسجيل حضور هذا المنخرط اليوم مسبقاً');
+  m.attendance.push({date:d,time:new Date().toLocaleTimeString('ar-DZ',{hour:'2-digit',minute:'2-digit'})});
+  saveMember(m);renderMembers();toast('تم تسجيل الحضور ✓');
+ }
+ if(action==='payment'){
+  const amount=Number(prompt('أدخل مبلغ الدفع بالدج:',''+(m.fee||''))||0);
+  if(!amount)return;
+  m.payments=memberPayments(m);
+  m.payments.push({amount,date:today(),type:'اشتراك',method:'نقدي'});
+  saveMember(m);renderMembers();toast('تم تسجيل الدفعة 💳');
+ }
+ if(action==='delete'){
+  if(!confirm('حذف المنخرط '+m.name+' وجميع دفعاته وحضوره؟'))return;
+  saveMembers(getMembers().filter(x=>x.id!==id));
+  members=getMembers();renderMembers();toast('تم حذف المنخرط');
+ }
+});
 $('#memberForm')?.addEventListener('submit',e=>{
  e.preventDefault();
  const name=$('#memberName').value.trim();
@@ -45,6 +241,13 @@ $('#memberForm')?.addEventListener('submit',e=>{
   startDate,
   endDate,
   fee,
+  payments:fee>0?[{
+   amount:fee,
+   date:today(),
+   type:'اشتراك',
+   method:'نقدي'
+  }]:[],
+  attendance:[],
   createdAt:new Date().toISOString()
  };
  members=getMembers();
@@ -63,23 +266,100 @@ $('#addMemberBtn')?.addEventListener('click',()=>{
  const d=new Date().toISOString().slice(0,10);
  if($('#memberStart'))$('#memberStart').value=d;
 });
-$('#addMemberBtn')?.addEventListener('click',()=>toast('نجهز الآن نموذج إضافة المنخرط'));
+function nav(view){
+  $$('.view').forEach(v=>{
+    v.classList.toggle('active',v.id==='view-'+view);
+  });
+  $$('[data-nav]').forEach(b=>{
+    b.classList.toggle('active',b.dataset.nav===view);
+  });
+  if(view==='members')renderMembers();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+
+$$('[data-nav]').forEach(b=>{
+  b.addEventListener('click',()=>nav(b.dataset.nav));
+});
+$$('[data-more-nav]').forEach(b=>{
+  b.addEventListener('click',()=>nav(b.dataset.moreNav));
+});
+
 function fill(){const p=state.profile;['name','age','height','weight','level','goal','days','monthlyFee'].forEach(k=>{if($('#'+k))$('#'+k).value=p[k]??''});}
 function render(){const p=state.profile;$('#helloName').textContent=p.name?`مرحباً ${p.name}، جاهز للتمرين؟`:'بطل، جاهز للتمرين؟';$('#dashWeight').textContent=p.weight||'—';$('#dashGoal').textContent=goalName[p.goal]||'—';$('#dashWorkouts').textContent=state.sessions;$('#dashStreak').textContent=Math.min(state.sessions,30);$('#progressWeight').textContent=p.weight?p.weight+' كغ':'—';$('#progressSessions').textContent=state.sessions;const days=Number(p.days)||4;const list=[['صدر + ترايسبس','Bench Press / Incline / Triceps'],['ظهر + بايسبس','Lat Pulldown / Row / Curl'],['أرجل','Squat / Leg Press / Leg Curl'],['أكتاف + بطن','Press / Lateral Raise / Core'],['Full Body','Squat / Press / Row / Core'],['كارديو واستشفاء','مشي سريع / إطالات / Mobility'],['اختبار القوة','تمارين مركبة بتقنية سليمة']];$('#workoutList').innerHTML=list.slice(0,Math.min(7,days)).map((x,i)=>`<article class="exercise"><div class="num">${i+1}</div><div><b>${x[0]}</b><br><small>${x[1]}</small></div><span>›</span></article>`).join('');
 const w=Number(p.weight)||0;let cal=w?(p.goal==='cut'?w*28:p.goal==='muscle'?w*33:w*30):0;$('#calories').textContent=cal?Math.round(cal):'—';$('#protein').textContent=w?Math.round(w*1.8)+' غ':'—';const ms=state.measurements;$('#measurementList').innerHTML=ms.length?ms.slice().reverse().map(m=>`<div class="measurement"><span>${m.date}</span><span>${m.weight} كغ · صدر ${m.chest||'—'} · خصر ${m.waist||'—'}</span></div>`).join(''):'<p class="muted">لا توجد قياسات بعد.</p>';const vals=ms.map(m=>Number(m.weight)).filter(Boolean).slice(-12);if(p.weight)vals.push(Number(p.weight));const max=Math.max(...vals,1),min=Math.min(...vals,0);$('#weightChart').innerHTML=vals.length?vals.map((v,i)=>`<div class="bar" style="height:${Math.max(12,((v-min)/(max-min||1))*130+20)}px"><span>${v}</span></div>`).join(''):'<p class="muted">أضف قياساً لرؤية الرسم.</p>';renderPayments();renderAttendance();}
 function money(n){return Number(n||0).toLocaleString('ar-DZ')}
 function today(){return new Date().toISOString().slice(0,10)}
 function renderPayments(){const now=new Date();const ym=now.toISOString().slice(0,7);const month=state.payments.filter(x=>x.date&&x.date.slice(0,7)===ym);const total=month.reduce((a,x)=>a+Number(x.amount||0),0);const due=Number(state.profile.monthlyFee||0)-total;$('#paidMonth').textContent=money(total);$('#dueAmount').textContent=money(Math.max(0,due));$('#lastPayment').textContent=state.payments.length?money(state.payments[state.payments.length-1].amount)+' دج':'—';$('#membershipStatus').textContent=total>0?'مدفوع':'غير مدفوع';$('#paymentList').innerHTML=state.payments.length?state.payments.slice().reverse().map(x=>`<div class="measurement"><span>${x.date}</span><span>${money(x.amount)} دج · ${x.type} · ${x.method}</span></div>`).join(''):'<p class="muted">لا توجد دفعات مسجلة.</p>'}
-function renderAttendance(){const now=new Date();const ym=now.toISOString().slice(0,7);const month=state.attendance.filter(x=>x.date&&x.date.slice(0,7)===ym);$('#monthAttendance').textContent=month.length;$('#lastAttendance').textContent=state.attendance.length?state.attendance[state.attendance.length-1].date:'—';const days=Number(state.profile.days)||4;$('#attendanceRate').textContent=Math.min(100,Math.round((month.length/(days*4))*100))+'%';let streak=0;for(let i=state.attendance.length-1;i>=0;i--){streak++;if(i>0){const a=new Date(state.attendance[i].date),b=new Date(state.attendance[i-1].date);if((a-b)/86400000>1)break}}$('#attendanceStreak').textContent=streak;$('#attendanceList').innerHTML=state.attendance.length?state.attendance.slice().reverse().map(x=>`<div class="measurement"><span>${x.date}</span><span>✓ حضور${x.note?' · '+x.note:''}</span></div>`).join(''):'<p class="muted">لم يتم تسجيل حضور بعد.</p>'}
-$('#paymentForm').addEventListener('submit',e=>{e.preventDefault();const amount=Number($('#payAmount').value);if(!amount)return toast('أدخل مبلغ الدفع');state.payments.push({amount,date:$('#payDate').value||today(),type:$('#payType').value,method:$('#payMethod').value,note:$('#payNote').value});save();e.target.reset();$('#payDate').value=today();toast('تم تسجيل الدفعة 💳');renderPayments()});
-$('#addPaymentBtn').addEventListener('click',()=>{nav('payments');setTimeout(()=>$('#payAmount').focus(),50)});
-$('#checkInBtn').addEventListener('click',()=>{const d=today();if(state.attendance.some(x=>x.date===d))return toast('تم تسجيل حضور اليوم مسبقاً');state.attendance.push({date:d});save();toast('تم تسجيل الحضور ✓');renderAttendance()});
-$('#profileForm').addEventListener('submit',e=>{e.preventDefault();['name','age','height','weight','level','goal','days','monthlyFee'].forEach(k=>state.profile[k]=$('#'+k).value);save();$('#saveMsg').classList.remove('hidden');toast('تم حفظ الملف بنجاح');render()});
-$('#completeWorkout').addEventListener('click',()=>{state.sessions++;save();toast('تم تسجيل الحصة 💪');render()});
-$('#measurementForm').addEventListener('submit',e=>{e.preventDefault();const w=$('#mWeight').value;if(!w)return toast('أدخل الوزن أولاً');state.measurements.push({date:new Date().toLocaleDateString('ar-DZ'),weight:w,chest:$('#mChest').value,waist:$('#mWaist').value});state.profile.weight=w;save();e.target.reset();toast('تمت إضافة القياس');render()});
-$('#exportBtn').addEventListener('click',()=>{const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='gym-dz-pro-backup.json';a.click();URL.revokeObjectURL(a.href);toast('تم إنشاء النسخة الاحتياطية')});
-$('#importFile').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!x.profile)throw Error();state=x;save();fill();render();renderMembers();toast('تم الاسترجاع بنجاح')}catch{toast('ملف النسخة الاحتياطية غير صالح')}};r.readAsText(f)});
-$('#resetBtn').addEventListener('click',()=>{if(confirm('حذف جميع بيانات التطبيق من هذا الجهاز؟')){localStorage.removeItem(KEY);location.reload()}});
-$('#themeBtn').addEventListener('click',()=>toast('الوضع الداكن هو الوضع الأساسي في GYM DZ PRO'));
-let deferredPrompt;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('#installBtn').classList.remove('hidden')});$('#installBtn').addEventListener('click',async()=>{if(deferredPrompt){deferredPrompt.prompt();deferredPrompt=null}});
+function renderAttendance(){
+ const d=today(),ym=d.slice(0,7);
+ members=getMembers();
+ const all=[],month=[],todayRows=[];
+ members.forEach(m=>{
+  memberAttendance(m).forEach(x=>{
+   const r={member:m,...x};
+   all.push(r);
+   if(x.date&&x.date.slice(0,7)===ym)month.push(r);
+   if(x.date===d)todayRows.push(r);
+  });
+ });
+ const days=[...new Set(month.map(x=>x.date))].sort();
+ let streak=0;
+ for(let i=days.length-1;i>=0;i--){
+  streak++;
+  if(i&&Math.round((new Date(days[i])-new Date(days[i-1]))/86400000)>1)break;
+ }
+ if($('#todayAttendance'))$('#todayAttendance').textContent=todayRows.length;
+ if($('#monthAttendance'))$('#monthAttendance').textContent=month.length;
+ all.sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.time||'').localeCompare(a.time||''));
+ if($('#lastAttendance'))$('#lastAttendance').textContent=all.length?all[0].date+' · '+(all[0].time||'—'):'—';
+ if($('#attendanceStreak'))$('#attendanceStreak').textContent=streak;
+
+ const q=($('#attendanceMemberSearch')?.value||'').trim().toLowerCase();
+ const filtered=members.filter(m=>(m.name||'').toLowerCase().includes(q)||(m.phone||'').includes(q));
+ const box=$('#attendanceMemberList');
+ if(box)box.innerHTML=filtered.length?filtered.map(m=>{
+  const st=memberStatus(m),has=memberAttendance(m).some(x=>x.date===d);
+  const label=st==='active'?'نشط':st==='soon'?'قريب الانتهاء':st==='expired'?'منتهي':'بدون اشتراك';
+  return `<article class="measurement member-card"><div><b>${m.name}</b><br><small>${m.phone||'لا يوجد هاتف'} · ${label}</small><br><small>ينتهي: ${m.endDate||'—'}</small></div><div class="member-actions">${has?'<button type="button" disabled>✓ تم الدخول اليوم</button>':`<button type="button" class="primary" data-attendance-checkin="${m.id}">✓ تسجيل الدخول</button>`}</div></article>`;
+ }).join(''):'<p class="muted">لا يوجد منخرط مطابق للبحث.</p>';
+
+ const list=$('#attendanceList');
+ if(list){
+  todayRows.sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+  list.innerHTML=todayRows.length?todayRows.map(x=>{
+   const st=memberStatus(x.member);
+   const warn=st==='expired'?' · ⚠️ الاشتراك منتهي':st==='soon'?' · ⚠️ قريب الانتهاء':'';
+   return `<div class="measurement"><span><b>${x.member.name}</b><br><small>${x.member.phone||''}</small></span><span>🕐 ${x.time||'—'}${warn}</span></div>`;
+  }).join(''):'<p class="muted">لم يتم تسجيل حضور اليوم بعد.</p>';
+ }
+}
+
+document.querySelector('#attendanceMemberSearch')?.addEventListener('input',renderAttendance);
+document.querySelector('#attendanceMemberList')?.addEventListener('click',e=>{
+ const b=e.target.closest('[data-attendance-checkin]');if(!b)return;
+ const m=memberById(b.dataset.attendanceCheckin);if(!m)return;
+ const d=today();m.attendance=memberAttendance(m);
+ if(m.attendance.some(x=>x.date===d))return toast('تم تسجيل حضور هذا المنخرط اليوم مسبقاً ✓');
+ const st=memberStatus(m);
+ m.attendance.push({date:d,time:new Date().toLocaleTimeString('ar-DZ',{hour:'2-digit',minute:'2-digit'})});
+ saveMember(m);renderAttendance();renderMembers();
+ toast(st==='expired'?'تم تسجيل الدخول، لكن الاشتراك منتهي ⚠️':st==='soon'?'تم تسجيل الحضور ✓ الاشتراك قريب من الانتهاء':'تم تسجيل الحضور ✓');
+});
+
+document.querySelector('#paymentForm')?.addEventListener('submit',e=>{e.preventDefault();const amount=Number($('#payAmount').value);if(!amount)return toast('أدخل مبلغ الدفع');state.payments.push({amount,date:$('#payDate').value||today(),type:$('#payType').value,method:$('#payMethod').value,note:$('#payNote').value});save();e.target.reset();$('#payDate').value=today();toast('تم تسجيل الدفعة 💳');renderPayments()});
+document.querySelector('#addPaymentBtn')?.addEventListener('click',()=>{nav('payments');setTimeout(()=>$('#payAmount').focus(),50)});
+document.querySelector('#checkInBtn')?.addEventListener('click',()=>{const d=today();if(state.attendance.some(x=>x.date===d))return toast('تم تسجيل حضور اليوم مسبقاً');state.attendance.push({date:d});save();toast('تم تسجيل الحضور ✓');renderAttendance()});
+document.querySelector('#profileForm')?.addEventListener('submit',e=>{e.preventDefault();['name','age','height','weight','level','goal','days','monthlyFee'].forEach(k=>state.profile[k]=$('#'+k).value);save();$('#saveMsg').classList.remove('hidden');toast('تم حفظ الملف بنجاح');render()});
+document.querySelector('#completeWorkout')?.addEventListener('click',()=>{state.sessions++;save();toast('تم تسجيل الحصة 💪');render()});
+document.querySelector('#measurementForm')?.addEventListener('submit',e=>{e.preventDefault();const w=$('#mWeight').value;if(!w)return toast('أدخل الوزن أولاً');state.measurements.push({date:new Date().toLocaleDateString('ar-DZ'),weight:w,chest:$('#mChest').value,waist:$('#mWaist').value});state.profile.weight=w;save();e.target.reset();toast('تمت إضافة القياس');render()});
+document.querySelector('#exportBtn')?.addEventListener('click',()=>{const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='gym-dz-pro-backup.json';a.click();URL.revokeObjectURL(a.href);toast('تم إنشاء النسخة الاحتياطية')});
+document.querySelector('#importFile')?.addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!x.profile)throw Error();state=x;save();fill();render();renderMembers();toast('تم الاسترجاع بنجاح')}catch{toast('ملف النسخة الاحتياطية غير صالح')}};r.readAsText(f)});
+document.querySelector('#resetBtn')?.addEventListener('click',()=>{if(confirm('حذف جميع بيانات التطبيق من هذا الجهاز؟')){localStorage.removeItem(KEY);location.reload()}});
+document.querySelector('#themeBtn')?.addEventListener('click',()=>toast('الوضع الداكن هو الوضع الأساسي في GYM DZ PRO'));
+let deferredPrompt;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('#installBtn').classList.remove('hidden')});document.querySelector('#installBtn')?.addEventListener('click',async()=>{if(deferredPrompt){deferredPrompt.prompt();deferredPrompt=null}});
 if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));fill();render();
+
+nav('dashboard');
+
+(function(){ const gate=document.querySelector('#licenseGate'); if(gate) gate.style.display='none'; })();

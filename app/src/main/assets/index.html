@@ -66,11 +66,39 @@
   <button type="button" id="closeQrModal">إغلاق</button>
  </div>
 </div>
-</div></section><section id="view-more" class="view"><div class="page-title"><div><p class="eyebrow">GYM DZ PRO</p><h1>المزيد</h1></div></div><div class="quick-grid" id="moreMenuGrid"><button class="quick" data-more-nav="workouts">🏋️<span>التمارين</span></button><button class="quick" data-more-nav="progress">📈<span>التطور</span></button><button class="quick" data-more-nav="nutrition">🥗<span>التغذية</span></button><button class="quick" data-more-nav="profile">👤<span>الملف الشخصي</span></button><button class="quick" data-more-nav="settings">⚙️<span>الإعدادات</span></button></div></section><section id="view-settings" class="view"><div class="page-title"><div><p class="eyebrow">التطبيق</p><h1>الإعدادات</h1></div></div><div class="panel settings"><button id="exportBtn">📦 تصدير نسخة احتياطية</button><label class="file-btn">📥 استرجاع نسخة احتياطية<input id="importFile" type="file" accept="application/json"></label><button id="resetBtn" class="danger">حذف كل بياناتي</button><div class="about"><b>GYM DZ PRO</b><p>نسخة Offline — البيانات محفوظة محلياً على جهازك.</p><p>الإصدار 1.0.0</p></div></div></section>
+</div></section><section id="view-more" class="view"><div class="page-title"><div><p class="eyebrow">GYM DZ PRO</p><h1>المزيد</h1></div></div><div class="quick-grid" id="moreMenuGrid"><button class="quick" data-more-nav="ai">🤖<span>المدرب الذكي</span></button><button class="quick" data-more-nav="workouts">🏋️<span>التمارين</span></button><button class="quick" data-more-nav="progress">📈<span>التطور</span></button><button class="quick" data-more-nav="nutrition">🥗<span>التغذية</span></button><button class="quick" data-more-nav="profile">👤<span>الملف الشخصي</span></button><button class="quick" data-more-nav="settings">⚙️<span>الإعدادات</span></button></div></section><section id="view-ai" class="view">
+<div class="page-title">
+<div>
+<p class="eyebrow">ذكاء محلي</p>
+<h1>المدرب الذكي 🤖</h1>
+</div>
+<button class="ghost" id="aiRefresh">↻ تحديث</button>
+</div>
+
+<div class="panel">
+<h2>تحليل GYM DZ PRO</h2>
+<p class="muted">التحليل يتم محلياً من البيانات الموجودة على الجهاز، بدون إنترنت.</p>
+<div id="aiInsights" class="ai-grid"></div>
+</div>
+
+<div class="panel">
+<h2>توصياتي اليوم</h2>
+<div id="aiTips" class="ai-tips"></div>
+</div>
+
+<div class="panel">
+<h2>اسأل GYM DZ PRO</h2>
+<form id="aiAskForm" class="ai-form">
+<input id="aiQuestion" placeholder="مثال: شكون اشتراكه يخلص هذا الأسبوع؟" autocomplete="off">
+<button class="primary" type="submit">تحليل</button>
+</form>
+<pre id="aiAnswer" class="ai-answer hidden"></pre>
+</div>
+</section><section id="view-settings" class="view"><div class="page-title"><div><p class="eyebrow">التطبيق</p><h1>الإعدادات</h1></div></div><div class="panel settings"><button id="exportBtn">📦 تصدير نسخة احتياطية</button><label class="file-btn">📥 استرجاع نسخة احتياطية<input id="importFile" type="file" accept="application/json"></label><button id="resetBtn" class="danger">حذف كل بياناتي</button><div class="about"><b>GYM DZ PRO</b><p>نسخة Offline — البيانات محفوظة محلياً على جهازك.</p><p>الإصدار 1.0.0</p></div></div></section>
 </main>
 <nav class="bottom-nav"><button data-nav="dashboard" class="active">⌂<span>الرئيسية</span></button><button data-nav="workouts">🏋️<span>التمرين</span></button><button data-nav="progress">📈<span>التطور</span></button><button data-nav="nutrition">🥗<span>التغذية</span></button><button data-nav="payments">💳<span>الدفع</span></button><button data-nav="attendance">📋<span>البونتاج</span></button><button data-nav="members">👥<span>المنخرطين</span></button><button data-nav="more">☰<span>المزيد</span></button></nav>
 <div id="toast" class="toast"></div>
 </div><script src="qrcode.js"></script>
 <script src="jsQR.js"></script>
-<script src="app.js"></script>
+<script src="ai-engine.js"></script><script src="app.js"></script>
 </body></html>

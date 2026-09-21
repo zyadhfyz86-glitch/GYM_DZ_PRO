@@ -11,6 +11,53 @@ const memberAttendance=m=>Array.isArray(m?.attendance)?m.attendance:[];
 const saveMember=m=>{const all=getMembers();const i=all.findIndex(x=>x.id===m.id);if(i<0)all.push(m);else all[i]=m;saveMembers(all);members=all;};
 let members=getMembers();
 function memberId(){return 'GYM-'+Date.now().toString(36).toUpperCase()+'-'+Math.random().toString(36).slice(2,6).toUpperCase()}
+function subscriptionNotifications(){
+ const todayDate=today();
+ const seen=JSON.parse(localStorage.getItem('gymdzpro_notifications_v1')||'{}');
+ const notices=[];
+ const all=getMembers();
+
+ all.forEach(m=>{
+  if(!m.endDate)return;
+  const end=new Date(m.endDate+'T23:59:59');
+  const days=Math.ceil((end-new Date())/86400000);
+  let type='';
+  let message='';
+
+  if(days<0){
+   type='expired';
+   message=`🔴 اشتراك ${m.name} منتهي`;
+  }else if(days<=3){
+   type='3days';
+   message=`🟠 اشتراك ${m.name} ينتهي خلال ${Math.max(0,days)} يوم`;
+  }else if(days<=7){
+   type='7days';
+   message=`🟡 اشتراك ${m.name} ينتهي خلال ${days} أيام`;
+  }else{
+   return;
+  }
+
+  const key=m.id+'_'+type+'_'+todayDate;
+  if(!seen[key]){
+   notices.push({member:m,message,type,days});
+   seen[key]=true;
+  }
+ });
+
+ localStorage.setItem('gymdzpro_notifications_v1',JSON.stringify(seen));
+
+ if(notices.length){
+  notices.forEach(n=>toast(n.message));
+ }
+
+ return notices;
+}
+
+function checkSubscriptionNotifications(){
+ setTimeout(subscriptionNotifications,500);
+}
+checkSubscriptionNotifications();
+
 function showMemberQR(m){
  const modal=$('#qrModal'),box=$('#qrCanvas');
  if(!modal||!box||!m)return;
@@ -266,6 +313,79 @@ $('#addMemberBtn')?.addEventListener('click',()=>{
  const d=new Date().toISOString().slice(0,10);
  if($('#memberStart'))$('#memberStart').value=d;
 });
+function renderAI(){
+ const box=$('#aiInsights');
+ if(!box||!window.GymAI)return;
+
+ const a=window.GymAI.analyze(state,getMembers());
+
+ const cards=[
+  ['🏋️','التدريب',a.training.sessions+' حصة',a.training.trend],
+  ['👥','المنخرطون',a.gym.active+' نشط',a.gym.soon+' قريب الانتهاء'],
+  ['💳','المدفوعات',money(a.gym.income),'هذا الشهر'],
+  ['🥗','التغذية',a.nutrition.calories?a.nutrition.calories+' سعرة':'—',
+   a.nutrition.protein?a.nutrition.protein+'غ بروتين':'أكمل الملف']
+ ];
+
+ box.innerHTML=cards.map(c=>
+  '<article class="ai-mini">'+
+  '<span>'+c[0]+'</span>'+
+  '<b>'+c[1]+'</b>'+
+  '<strong>'+c[2]+'</strong>'+
+  '<small>'+c[3]+'</small>'+
+  '</article>'
+ ).join('');
+
+ const tips=$('#aiTips');
+
+ if(tips){
+  tips.innerHTML=a.tips.map(x=>
+   '<div>• '+x+'</div>'
+  ).join('');
+ }
+}
+
+function initAI(){
+ const form=$('#aiAskForm');
+
+ if(form&&!form.dataset.ready){
+  form.dataset.ready='1';
+
+  form.addEventListener('submit',e=>{
+   e.preventDefault();
+
+   const input=$('#aiQuestion');
+   const output=$('#aiAnswer');
+
+   if(!input||!output)return;
+
+   const q=input.value.trim();
+
+   if(!q)return;
+
+   output.textContent=window.GymAI.answer(
+    q,
+    state,
+    getMembers()
+   );
+
+   output.classList.remove('hidden');
+   input.value='';
+  });
+ }
+
+ const refresh=$('#aiRefresh');
+
+ if(refresh&&!refresh.dataset.ready){
+  refresh.dataset.ready='1';
+
+  refresh.addEventListener('click',()=>{
+   renderAI();
+   toast('تم تحديث التحليل الذكي 🤖');
+  });
+ }
+}
+
 function nav(view){
   $$('.view').forEach(v=>{
     v.classList.toggle('active',v.id==='view-'+view);
@@ -274,6 +394,7 @@ function nav(view){
     b.classList.toggle('active',b.dataset.nav===view);
   });
   if(view==='members')renderMembers();
+  if(view==='ai'){initAI();renderAI();}
   window.scrollTo({top:0,behavior:'smooth'});
 }
 

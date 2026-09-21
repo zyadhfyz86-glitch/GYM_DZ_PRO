@@ -406,6 +406,21 @@ $$('[data-more-nav]').forEach(b=>{
   b.addEventListener('click',()=>nav(b.dataset.moreNav));
 });
 
+// AI direct fallback
+const aiForm=$('#aiAskForm');
+if(aiForm&&!aiForm.dataset.directReady){
+ aiForm.dataset.directReady='1';
+ aiForm.addEventListener('submit',e=>{
+  e.preventDefault();
+  const input=$('#aiQuestion'),output=$('#aiAnswer');
+  if(!input||!output||!window.GymAI)return;
+  const q=input.value.trim();
+  if(!q)return;
+  output.textContent=window.GymAI.answer(q,state,getMembers());
+  output.classList.remove('hidden');
+ });
+}
+
 function fill(){const p=state.profile;['name','age','height','weight','level','goal','days','monthlyFee'].forEach(k=>{if($('#'+k))$('#'+k).value=p[k]??''});}
 function render(){const p=state.profile;$('#helloName').textContent=p.name?`مرحباً ${p.name}، جاهز للتمرين؟`:'بطل، جاهز للتمرين؟';$('#dashWeight').textContent=p.weight||'—';$('#dashGoal').textContent=goalName[p.goal]||'—';$('#dashWorkouts').textContent=state.sessions;$('#dashStreak').textContent=Math.min(state.sessions,30);$('#progressWeight').textContent=p.weight?p.weight+' كغ':'—';$('#progressSessions').textContent=state.sessions;const days=Number(p.days)||4;const list=[['صدر + ترايسبس','Bench Press / Incline / Triceps'],['ظهر + بايسبس','Lat Pulldown / Row / Curl'],['أرجل','Squat / Leg Press / Leg Curl'],['أكتاف + بطن','Press / Lateral Raise / Core'],['Full Body','Squat / Press / Row / Core'],['كارديو واستشفاء','مشي سريع / إطالات / Mobility'],['اختبار القوة','تمارين مركبة بتقنية سليمة']];$('#workoutList').innerHTML=list.slice(0,Math.min(7,days)).map((x,i)=>`<article class="exercise"><div class="num">${i+1}</div><div><b>${x[0]}</b><br><small>${x[1]}</small></div><span>›</span></article>`).join('');
 const w=Number(p.weight)||0;let cal=w?(p.goal==='cut'?w*28:p.goal==='muscle'?w*33:w*30):0;$('#calories').textContent=cal?Math.round(cal):'—';$('#protein').textContent=w?Math.round(w*1.8)+' غ':'—';const ms=state.measurements;$('#measurementList').innerHTML=ms.length?ms.slice().reverse().map(m=>`<div class="measurement"><span>${m.date}</span><span>${m.weight} كغ · صدر ${m.chest||'—'} · خصر ${m.waist||'—'}</span></div>`).join(''):'<p class="muted">لا توجد قياسات بعد.</p>';const vals=ms.map(m=>Number(m.weight)).filter(Boolean).slice(-12);if(p.weight)vals.push(Number(p.weight));const max=Math.max(...vals,1),min=Math.min(...vals,0);$('#weightChart').innerHTML=vals.length?vals.map((v,i)=>`<div class="bar" style="height:${Math.max(12,((v-min)/(max-min||1))*130+20)}px"><span>${v}</span></div>`).join(''):'<p class="muted">أضف قياساً لرؤية الرسم.</p>';renderPayments();renderAttendance();}

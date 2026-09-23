@@ -97,6 +97,12 @@ function qrScanResult(id){
   return false;
  }
 
+ const st=memberStatus(m);
+ if(st==='expired'){
+  toast(`⚠️ ${m.name}: الاشتراك منتهي، لم يُسجل الحضور`);
+  return true;
+ }
+
  const arr=memberAttendance(m);
  const today=new Date().toISOString().slice(0,10);
  if(arr.some(x=>x.date===today)){
@@ -115,14 +121,6 @@ function qrScanResult(id){
  if(typeof renderMembers==='function')renderMembers();
  if(typeof renderAttendance==='function')renderAttendance();
  if(typeof render==='function')render();
-
- const st=memberStatus(m);
- if(st==='expired'){
-  toast(`⚠️ ${m.name}: الاشتراك منتهي، لم يُسجل الحضور`);
-  arr.pop();
-  saveMember(m);
-  return true;
- }
 
  toast(`✓ تم تسجيل حضور ${m.name}`);
  return true;
@@ -256,8 +254,10 @@ $('#membersList')?.addEventListener('click',e=>{
   const d=today();
   m.attendance=memberAttendance(m);
   if(m.attendance.some(x=>x.date===d))return toast('تم تسجيل حضور هذا المنخرط اليوم مسبقاً');
+  const st=memberStatus(m);
+  if(st==='expired')return toast('⚠️ لا يمكن تسجيل الحضور: اشتراك المنخرط منتهي');
   m.attendance.push({date:d,time:new Date().toLocaleTimeString('ar-DZ',{hour:'2-digit',minute:'2-digit'})});
-  saveMember(m);renderMembers();toast('تم تسجيل الحضور ✓');
+  saveMember(m);renderMembers();toast(st==='soon'?'تم تسجيل الحضور ✓ الاشتراك قريب من الانتهاء':'تم تسجيل الحضور ✓');
  }
  if(action==='payment'){
   const amount=Number(prompt('أدخل مبلغ الدفع بالدج:',''+(m.fee||''))||0);
@@ -345,6 +345,163 @@ function renderAI(){
  }
 }
 
+let aiLastAnswer='';
+
+function speakAI(text){
+ const value=String(text||'').trim();
+ if(!value)return;
+
+ try{
+  if(window.AndroidTTS && typeof window.AndroidTTS.speak==='function'){
+   window.AndroidTTS.speak(value);
+   return;
+  }
+
+  if(!('speechSynthesis' in window)){
+   toast('النطق الصوتي غير مدعوم في هذا الجهاز');
+   return;
+  }
+
+  window.speechSynthesis.cancel();
+
+  const utterance=new SpeechSynthesisUtterance(value);
+  const voices=window.speechSynthesis.getVoices()||[];
+
+  const voice=
+   voices.find(v=>/^ar-DZ$/i.test(v.lang)) ||
+   voices.find(v=>/^ar/i.test(v.lang));
+
+  utterance.lang=voice?voice.lang:'ar-DZ';
+  if(voice)utterance.voice=voice;
+
+  utterance.rate=0.9;
+  utterance.pitch=1;
+  utterance.volume=1;
+
+  window.speechSynthesis.speak(utterance);
+ }catch(e){
+  console.error('AI_SPEECH',e);
+  toast('تعذر تشغيل الصوت');
+ }
+}
+
+function answerAI(q){
+ const output=$('#aiAnswer');
+ if(!output||!window.GymAI)return '';
+
+ const question=String(q||'').trim();
+ if(!question)return '';
+
+ const answer=window.GymAI.answer(
+  question,
+  state,
+  getMembers()
+ );
+
+ output.textContent=answer;
+ output.classList.remove('hidden');
+
+ aiLastAnswer=answer;
+
+ const speakButton=$('#aiSpeak');
+ if(speakButton)speakButton.classList.remove('hidden');
+
+ speakAI(answer);
+ return answer;
+}
+
+document.addEventListener('click',e=>{
+ const mic=e.target.closest('#aiMic');
+ if(!mic)return;
+
+ if(mic.dataset.voiceBusy==='1'){
+  if(window.AndroidSpeech&&typeof window.AndroidSpeech.stop==='function'){
+   window.AndroidSpeech.stop();
+  }
+  return;
+ }
+
+ mic.dataset.voiceBusy='1';
+ mic.classList.add('recording');
+ mic.textContent='⏹️';
+
+ if(window.speechSynthesis)window.speechSynthesis.cancel();
+
+ if(window.AndroidSpeech&&typeof window.AndroidSpeech.start==='function'){
+  window.AndroidSpeech.start();
+ }else{
+  mic.dataset.voiceBusy='0';
+  mic.classList.remove('recording');
+  mic.textContent='🎙️';
+  toast('ميزة التحدث الصوتي غير متاحة');
+ }
+});
+ 
+function initAIVoice(){
+ const mic=$('#aiMic');
+ const input=$('#aiQuestion');
+
+ if(!mic||!input||mic.dataset.ready)return;
+ mic.dataset.ready='1';
+
+ let listening=false;
+
+ window.onNativeSpeechStart=()=>{
+  listening=true;
+  mic.classList.add('recording');
+  mic.textContent='⏹️';
+ };
+
+ window.onNativeSpeechEnd=()=>{
+  listening=false;
+  mic.classList.remove('recording');
+  mic.textContent='🎙️';
+ };
+
+ window.onNativeSpeechResult=(text)=>{
+  const value=String(text||'').trim();
+  if(!value)return;
+  input.value=value;
+  answerAI(value);
+ };
+
+ window.onNativeSpeechError=(error)=>{
+  listening=false;
+  mic.classList.remove('recording');
+  mic.textContent='🎙️';
+
+  if(String(error)==='not-allowed'){
+   toast('اسمح للتطبيق باستعمال الميكروفون');
+  }else if(String(error)==='unavailable'){
+   toast('التعرف على الكلام غير متاح في الجهاز');
+  }else{
+   toast('تعذر التعرف على الكلام، عاود جرّب');
+  }
+ };
+
+ mic.addEventListener('click',()=>{
+  toast('🎙️ الزر استقبل الضغط');
+  try{
+   if(listening){
+    if(window.AndroidSpeech&&typeof window.AndroidSpeech.stop==='function'){
+     window.AndroidSpeech.stop();
+    }
+   }else{
+    if(window.speechSynthesis)window.speechSynthesis.cancel();
+
+    if(window.AndroidSpeech&&typeof window.AndroidSpeech.start==='function'){
+     window.AndroidSpeech.start();
+    }else{
+     toast('ميزة التحدث الصوتي غير متاحة');
+    }
+   }
+  }catch(e){
+   console.error('AI_NATIVE_SPEECH',e);
+   toast('تعذر تشغيل الميكروفون');
+  }
+ });
+}
+
 function initAI(){
  const form=$('#aiAskForm');
 
@@ -355,22 +512,23 @@ function initAI(){
    e.preventDefault();
 
    const input=$('#aiQuestion');
-   const output=$('#aiAnswer');
-
-   if(!input||!output)return;
+   if(!input)return;
 
    const q=input.value.trim();
-
    if(!q)return;
 
-   output.textContent=window.GymAI.answer(
-    q,
-    state,
-    getMembers()
-   );
-
-   output.classList.remove('hidden');
+   answerAI(q);
    input.value='';
+  });
+ }
+
+ const speak=$('#aiSpeak');
+
+ if(speak&&!speak.dataset.ready){
+  speak.dataset.ready='1';
+
+  speak.addEventListener('click',()=>{
+   if(aiLastAnswer)speakAI(aiLastAnswer);
   });
  }
 
@@ -384,6 +542,8 @@ function initAI(){
    toast('تم تحديث التحليل الذكي 🤖');
   });
  }
+
+ initAIVoice();
 }
 
 function nav(view){
@@ -406,26 +566,69 @@ $$('[data-more-nav]').forEach(b=>{
   b.addEventListener('click',()=>nav(b.dataset.moreNav));
 });
 
-// AI direct fallback
-const aiForm=$('#aiAskForm');
-if(aiForm&&!aiForm.dataset.directReady){
- aiForm.dataset.directReady='1';
- aiForm.addEventListener('submit',e=>{
-  e.preventDefault();
-  const input=$('#aiQuestion'),output=$('#aiAnswer');
-  if(!input||!output||!window.GymAI)return;
-  const q=input.value.trim();
-  if(!q)return;
-  output.textContent=window.GymAI.answer(q,state,getMembers());
-  output.classList.remove('hidden');
- });
-}
-
 function fill(){const p=state.profile;['name','age','height','weight','level','goal','days','monthlyFee'].forEach(k=>{if($('#'+k))$('#'+k).value=p[k]??''});}
+const goalName={muscle:'بناء العضلات',cut:'تنشيف',strength:'القوة',fitness:'لياقة'};
 function render(){const p=state.profile;$('#helloName').textContent=p.name?`مرحباً ${p.name}، جاهز للتمرين؟`:'بطل، جاهز للتمرين؟';$('#dashWeight').textContent=p.weight||'—';$('#dashGoal').textContent=goalName[p.goal]||'—';$('#dashWorkouts').textContent=state.sessions;$('#dashStreak').textContent=Math.min(state.sessions,30);$('#progressWeight').textContent=p.weight?p.weight+' كغ':'—';$('#progressSessions').textContent=state.sessions;const days=Number(p.days)||4;const list=[['صدر + ترايسبس','Bench Press / Incline / Triceps'],['ظهر + بايسبس','Lat Pulldown / Row / Curl'],['أرجل','Squat / Leg Press / Leg Curl'],['أكتاف + بطن','Press / Lateral Raise / Core'],['Full Body','Squat / Press / Row / Core'],['كارديو واستشفاء','مشي سريع / إطالات / Mobility'],['اختبار القوة','تمارين مركبة بتقنية سليمة']];$('#workoutList').innerHTML=list.slice(0,Math.min(7,days)).map((x,i)=>`<article class="exercise"><div class="num">${i+1}</div><div><b>${x[0]}</b><br><small>${x[1]}</small></div><span>›</span></article>`).join('');
+  renderWorkoutPlan();
 const w=Number(p.weight)||0;let cal=w?(p.goal==='cut'?w*28:p.goal==='muscle'?w*33:w*30):0;$('#calories').textContent=cal?Math.round(cal):'—';$('#protein').textContent=w?Math.round(w*1.8)+' غ':'—';const ms=state.measurements;$('#measurementList').innerHTML=ms.length?ms.slice().reverse().map(m=>`<div class="measurement"><span>${m.date}</span><span>${m.weight} كغ · صدر ${m.chest||'—'} · خصر ${m.waist||'—'}</span></div>`).join(''):'<p class="muted">لا توجد قياسات بعد.</p>';const vals=ms.map(m=>Number(m.weight)).filter(Boolean).slice(-12);if(p.weight)vals.push(Number(p.weight));const max=Math.max(...vals,1),min=Math.min(...vals,0);$('#weightChart').innerHTML=vals.length?vals.map((v,i)=>`<div class="bar" style="height:${Math.max(12,((v-min)/(max-min||1))*130+20)}px"><span>${v}</span></div>`).join(''):'<p class="muted">أضف قياساً لرؤية الرسم.</p>';renderPayments();renderAttendance();}
 function money(n){return Number(n||0).toLocaleString('ar-DZ')}
 function today(){return new Date().toISOString().slice(0,10)}
+
+function renderWorkoutPlan(){
+  const p=state.profile||{};
+  const days=Math.max(1,Math.min(7,Number(p.days)||4));
+  const goal=p.goal||'muscle';
+  const level=p.level||'beginner';
+  const goalName={muscle:'بناء العضلات',cut:'تنشيف',strength:'القوة',fitness:'لياقة'};
+  const levelName={beginner:'مبتدئ',intermediate:'متوسط',advanced:'متقدم'};
+  const plans={
+    muscle:[
+      ['صدر + ترايسبس',['Bench Press — 4 × 8-12','Incline Dumbbell Press — 3 × 10-12','Cable Fly — 3 × 12-15','Triceps Pushdown — 3 × 10-15']],
+      ['ظهر + بايسبس',['Lat Pulldown — 4 × 8-12','Seated Row — 3 × 10-12','One Arm Row — 3 × 10','Biceps Curl — 3 × 10-15']],
+      ['أرجل',['Squat — 4 × 8-12','Leg Press — 3 × 10-12','Leg Curl — 3 × 10-15','Calf Raise — 4 × 12-15']],
+      ['أكتاف + بطن',['Shoulder Press — 4 × 8-12','Lateral Raise — 3 × 12-15','Rear Delt Fly — 3 × 12-15','Plank — 3 × 30-60ث']],
+      ['صدر + ظهر',['Bench Press — 3 × 8-12','Lat Pulldown — 3 × 8-12','Incline Press — 3 × 10','Row — 3 × 10']],
+      ['أرجل + أكتاف',['Leg Press — 3 × 10','Leg Curl — 3 × 12','Shoulder Press — 3 × 10','Lateral Raise — 3 × 15']],
+      ['Full Body',['Squat — 3 × 10','Bench Press — 3 × 10','Row — 3 × 10','Core — 3 × 15']]
+    ],
+    strength:[
+      ['قوة — دفع',['Bench Press — 5 × 5','Overhead Press — 4 × 5','Dips — 3 × 6-10']],
+      ['قوة — سحب',['Deadlift — 5 × 3','Barbell Row — 4 × 5','Lat Pulldown — 3 × 8']],
+      ['قوة — أرجل',['Squat — 5 × 5','Leg Press — 3 × 8','Leg Curl — 3 × 10']],
+      ['قوة — شامل',['Bench Press — 4 × 5','Squat — 4 × 5','Row — 4 × 6']]
+    ],
+    cut:[
+      ['صدر + كارديو',['Bench Press — 3 × 10-12','Incline Press — 3 × 12','Cable Fly — 3 × 15','مشي سريع — 15 دقيقة']],
+      ['ظهر + كارديو',['Lat Pulldown — 3 × 12','Row — 3 × 12','Curl — 3 × 15','مشي سريع — 15 دقيقة']],
+      ['أرجل',['Squat — 3 × 10','Leg Press — 3 × 12','Leg Curl — 3 × 15','دراجة — 15 دقيقة']],
+      ['أكتاف + بطن',['Shoulder Press — 3 × 10','Lateral Raise — 3 × 15','Plank — 3 × 45ث','مشي — 15 دقيقة']],
+      ['Full Body',['Squat — 3 × 10','Press — 3 × 10','Row — 3 × 12','Cardio — 20 دقيقة']],
+      ['كارديو واستشفاء',['مشي سريع — 25 دقيقة','Mobility — 10 دقائق','إطالات — 10 دقائق']],
+      ['Full Body خفيف',['Leg Press — 3 × 12','Chest Press — 3 × 12','Pulldown — 3 × 12']]
+    ],
+    fitness:[
+      ['لياقة شاملة',['Squat — 3 × 12','Push Up — 3 × 10','Row — 3 × 12','Plank — 3 × 45ث']],
+      ['قوة وتحمل',['Leg Press — 3 × 12','Chest Press — 3 × 12','Lat Pulldown — 3 × 12','مشي — 15 دقيقة']],
+      ['كارديو + Core',['مشي سريع — 20 دقيقة','Bike — 15 دقيقة','Plank — 3 × 45ث','Crunch — 3 × 15']],
+      ['Full Body',['Squat — 3 × 12','Press — 3 × 12','Row — 3 × 12','Core — 3 × 15']],
+      ['تحمل',['Lunges — 3 × 10','Push Up — 3 × 10','Pulldown — 3 × 12','Cardio — 20 دقيقة']],
+      ['استشفاء',['مشي — 20 دقيقة','Mobility — 15 دقيقة','إطالات — 10 دقائق']],
+      ['نشاط حر',['Full Body خفيف — 3 × 12','Cardio — 20 دقيقة']]
+    ]
+  };
+  const plan=plans[goal]||plans.muscle;
+  $('#planGoal').textContent=goalName[goal]||'بناء العضلات';
+  $('#planLevel').textContent=levelName[level]||'مبتدئ';
+  $('#planDays').textContent=days+' أيام / أسبوع';
+  $('#workoutList').innerHTML=plan.slice(0,days).map((x,i)=>`
+    <article class="exercise training-day">
+      <div class="num">${i+1}</div>
+      <div class="training-content"><b>اليوم ${i+1} — ${x[0]}</b>
+      <div class="training-exercises">${x[1].map(e=>`<div>✓ ${e}</div>`).join('')}</div>
+      <small class="muted">راحة بين المجموعات: 60–120 ثانية · ابدأ بوزن مناسب لتقنية سليمة.</small></div>
+    </article>`).join('');
+}
+
 function renderPayments(){const now=new Date();const ym=now.toISOString().slice(0,7);const month=state.payments.filter(x=>x.date&&x.date.slice(0,7)===ym);const total=month.reduce((a,x)=>a+Number(x.amount||0),0);const due=Number(state.profile.monthlyFee||0)-total;$('#paidMonth').textContent=money(total);$('#dueAmount').textContent=money(Math.max(0,due));$('#lastPayment').textContent=state.payments.length?money(state.payments[state.payments.length-1].amount)+' دج':'—';$('#membershipStatus').textContent=total>0?'مدفوع':'غير مدفوع';$('#paymentList').innerHTML=state.payments.length?state.payments.slice().reverse().map(x=>`<div class="measurement"><span>${x.date}</span><span>${money(x.amount)} دج · ${x.type} · ${x.method}</span></div>`).join(''):'<p class="muted">لا توجد دفعات مسجلة.</p>'}
 function renderAttendance(){
  const d=today(),ym=d.slice(0,7);
@@ -478,9 +681,10 @@ document.querySelector('#attendanceMemberList')?.addEventListener('click',e=>{
  const d=today();m.attendance=memberAttendance(m);
  if(m.attendance.some(x=>x.date===d))return toast('تم تسجيل حضور هذا المنخرط اليوم مسبقاً ✓');
  const st=memberStatus(m);
+ if(st==='expired')return toast('⚠️ لا يمكن تسجيل الحضور: اشتراك المنخرط منتهي');
  m.attendance.push({date:d,time:new Date().toLocaleTimeString('ar-DZ',{hour:'2-digit',minute:'2-digit'})});
  saveMember(m);renderAttendance();renderMembers();
- toast(st==='expired'?'تم تسجيل الدخول، لكن الاشتراك منتهي ⚠️':st==='soon'?'تم تسجيل الحضور ✓ الاشتراك قريب من الانتهاء':'تم تسجيل الحضور ✓');
+ toast(st==='soon'?'تم تسجيل الحضور ✓ الاشتراك قريب من الانتهاء':'تم تسجيل الحضور ✓');
 });
 
 document.querySelector('#paymentForm')?.addEventListener('submit',e=>{e.preventDefault();const amount=Number($('#payAmount').value);if(!amount)return toast('أدخل مبلغ الدفع');state.payments.push({amount,date:$('#payDate').value||today(),type:$('#payType').value,method:$('#payMethod').value,note:$('#payNote').value});save();e.target.reset();$('#payDate').value=today();toast('تم تسجيل الدفعة 💳');renderPayments()});
@@ -489,13 +693,11 @@ document.querySelector('#checkInBtn')?.addEventListener('click',()=>{const d=tod
 document.querySelector('#profileForm')?.addEventListener('submit',e=>{e.preventDefault();['name','age','height','weight','level','goal','days','monthlyFee'].forEach(k=>state.profile[k]=$('#'+k).value);save();$('#saveMsg').classList.remove('hidden');toast('تم حفظ الملف بنجاح');render()});
 document.querySelector('#completeWorkout')?.addEventListener('click',()=>{state.sessions++;save();toast('تم تسجيل الحصة 💪');render()});
 document.querySelector('#measurementForm')?.addEventListener('submit',e=>{e.preventDefault();const w=$('#mWeight').value;if(!w)return toast('أدخل الوزن أولاً');state.measurements.push({date:new Date().toLocaleDateString('ar-DZ'),weight:w,chest:$('#mChest').value,waist:$('#mWaist').value});state.profile.weight=w;save();e.target.reset();toast('تمت إضافة القياس');render()});
-document.querySelector('#exportBtn')?.addEventListener('click',()=>{const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='gym-dz-pro-backup.json';a.click();URL.revokeObjectURL(a.href);toast('تم إنشاء النسخة الاحتياطية')});
+document.querySelector('#exportBtn')?.addEventListener('click',()=>{const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='tigre-backup.json';a.click();URL.revokeObjectURL(a.href);toast('تم إنشاء النسخة الاحتياطية')});
 document.querySelector('#importFile')?.addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!x.profile)throw Error();state=x;save();fill();render();renderMembers();toast('تم الاسترجاع بنجاح')}catch{toast('ملف النسخة الاحتياطية غير صالح')}};r.readAsText(f)});
 document.querySelector('#resetBtn')?.addEventListener('click',()=>{if(confirm('حذف جميع بيانات التطبيق من هذا الجهاز؟')){localStorage.removeItem(KEY);location.reload()}});
-document.querySelector('#themeBtn')?.addEventListener('click',()=>toast('الوضع الداكن هو الوضع الأساسي في GYM DZ PRO'));
+document.querySelector('#themeBtn')?.addEventListener('click',()=>toast('الوضع الداكن هو الوضع الأساسي في TIGRE'));
 let deferredPrompt;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('#installBtn').classList.remove('hidden')});document.querySelector('#installBtn')?.addEventListener('click',async()=>{if(deferredPrompt){deferredPrompt.prompt();deferredPrompt=null}});
 if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));fill();render();
 
 nav('dashboard');
-
-(function(){ const gate=document.querySelector('#licenseGate'); if(gate) gate.style.display='none'; })();

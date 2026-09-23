@@ -2,13 +2,21 @@ plugins {
     id 'com.android.application'
 }
 
+dependencies {
+    implementation "com.alphacephei:vosk-android:0.3.70"
+    implementation 'com.microsoft.onnxruntime:onnxruntime-android:1.30.0'
+}
+
 android {
+    androidResources {
+        noCompress += ["zip"]
+    }
     namespace 'com.gymdz.pro'
     compileSdk 34
 
     defaultConfig {
         applicationId 'com.gymdz.pro'
-        minSdk 23
+        minSdk 24
         targetSdk 35
         versionCode 1
         versionName '1.0.0'

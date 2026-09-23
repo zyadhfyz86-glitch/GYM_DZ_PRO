@@ -6,3 +6,6 @@ local.properties
 .idea/
 *.apk
 *.aab
+*.backup
+*.before-*
+AI_*_BACKUP_*/

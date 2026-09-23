@@ -5,7 +5,7 @@ linear-gradient(145deg,#090a0d 0%,#0d0f14 48%,#08090c 100%);color:var(--text);fo
 
 #view-payments .stat strong,#view-attendance .stat strong{font-size:22px}.measurement span:last-child{color:var(--text)}@media(max-width:700px){#view-payments .stats-grid,#view-attendance .stats-grid{grid-template-columns:1fr 1fr}}
 
-/* ===== GYM DZ PRO — Local AI Coach ===== */
+/* ===== TIGRE — Local AI Coach ===== */
 .ai-banner{
   display:flex;
   align-items:center;
@@ -101,4 +101,69 @@ linear-gradient(145deg,#090a0d 0%,#0d0f14 48%,#08090c 100%);color:var(--text);fo
   .ai-banner{
     align-items:flex-start;
   }
+}
+
+/* TIGRE — More menu organization */
+.more-groups{
+  display:grid;
+  gap:16px;
+  margin-top:8px;
+}
+.more-group{
+  padding:16px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:20px;
+  background:rgba(255,255,255,.025);
+}
+.more-group h2{
+  margin:0 0 12px;
+  font-size:15px;
+}
+.more-group .quick-grid{
+  margin:0;
+}
+
+/* TIGRE — Training plan */
+.training-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 16px}
+.training-summary>div{padding:14px;border:1px solid rgba(255,255,255,.08);border-radius:16px;background:rgba(255,255,255,.025)}
+.training-summary span{display:block;font-size:12px;opacity:.65;margin-bottom:5px}
+.training-summary strong{font-size:14px}
+.training-day{align-items:flex-start!important}
+.training-content{flex:1}
+.training-exercises{display:grid;gap:7px;margin:12px 0}
+.training-exercises div{padding:9px 10px;border-radius:10px;background:rgba(255,255,255,.035);font-size:13px}
+@media(max-width:520px){.training-summary{grid-template-columns:1fr 1fr}.training-summary>div:last-child{grid-column:1/-1}}
+
+
+.ai-voice-input{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  width:100%;
+}
+.ai-voice-input #aiQuestion{
+  flex:1;
+  min-width:0;
+}
+.ai-voice-btn,
+.ai-speak-btn{
+  border:0;
+  border-radius:12px;
+  padding:10px 14px;
+  cursor:pointer;
+  font-weight:700;
+  font-size:15px;
+}
+.ai-voice-btn{
+  min-width:48px;
+}
+.ai-voice-btn.recording{
+  animation:aiVoicePulse 1s infinite;
+}
+.ai-speak-btn{
+  margin-top:8px;
+}
+@keyframes aiVoicePulse{
+  0%,100%{transform:scale(1)}
+  50%{transform:scale(1.08)}
 }

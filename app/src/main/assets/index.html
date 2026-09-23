@@ -2,47 +2,27 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0b1110"><meta name="description" content="GYM DZ PRO — تطبيق تدريب ولياقة جزائري يعمل دون إنترنت">
+<meta name="theme-color" content="#0b1110"><meta name="description" content="TIGRE — تطبيق تدريب ولياقة جزائري يعمل دون إنترنت">
 <link rel="manifest" href="manifest.json"><link rel="icon" href="icon.svg">
-<link rel="stylesheet" href="styles.css"><title>GYM DZ PRO</title>
+<link rel="stylesheet" href="styles.css"><title>TIGRE</title>
 
 <style>
-.license-gate{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(circle at 50% 15%,#54131b 0,transparent 35%),linear-gradient(145deg,#07080b,#11131a 55%,#08090c);font-family:inherit}
-.license-box{width:min(430px,100%);padding:32px 24px;border:1px solid #343944;border-radius:24px;background:rgba(18,20,25,.96);box-shadow:0 25px 80px #000b;text-align:center}
-.license-box .brand-mark{width:70px;height:70px;margin:0 auto 18px;border-radius:20px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#ff4654,#8f1824);color:#fff;font-size:24px;font-weight:900;box-shadow:0 12px 35px #8f182455}
-.license-box .eyebrow{color:#ff6b74;font-size:12px;font-weight:800;letter-spacing:2px;margin:0 0 8px}
-.license-box h1{margin:0 0 10px;color:#fff;font-size:27px}
-.license-box p:not(.eyebrow){color:#aeb3bc;line-height:1.7;margin:0 0 22px}
-.license-box input{box-sizing:border-box;width:100%;padding:15px 14px;border:1px solid #363b45;border-radius:14px;background:#0b0d11;color:#fff;text-align:center;font-size:15px;outline:none;margin-bottom:12px}
-.license-box input:focus{border-color:#e63946;box-shadow:0 0 0 3px #e6394620}
-.license-box .primary{width:100%;padding:15px;border:0;border-radius:14px;background:linear-gradient(135deg,#ef4653,#8f1824);color:#fff;font-weight:900;font-size:15px;cursor:pointer}
-.license-message{min-height:22px;margin-top:14px;color:#ff8b92;font-size:13px}
 </style>
 </head>
 <body>
-<div id="licenseGate" class="license-gate" style="display:none;">
-  <div class="license-box">
-    <div class="brand-mark">DZ</div>
-    <p class="eyebrow">GYM DZ PRO</p>
-    <h1>تفعيل القاعة</h1>
-    <p>أدخل مفتاح الترخيص الخاص بهذه القاعة لتفعيل التطبيق بدون إنترنت.</p>
-    <textarea id="licenseKeyInput" rows="5" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="ألصق مفتاح الترخيص هنا"></textarea>
-    <button id="activateLicenseBtn" class="primary">تفعيل التطبيق</button>
-    <div id="licenseMessage" class="license-message"></div>
-  </div>
-</div>
+
 <div id="app">
-<header class="topbar"><div class="brand"><div class="brand-mark">G</div><div><b>GYM DZ</b><span>PRO</span></div></div><div class="top-actions"><button id="installBtn" class="ghost hidden">تثبيت التطبيق</button><button id="themeBtn" class="icon-btn" aria-label="المظهر">☾</button></div></header>
+<header class="topbar"><div class="brand"><div class="brand-mark">🐯</div><div><b>TIGRE</b><span>TIGRE</span></div></div><div class="top-actions"><button id="installBtn" class="ghost hidden">تثبيت التطبيق</button><button id="themeBtn" class="icon-btn" aria-label="المظهر">☾</button></div></header>
 <main class="shell">
 <section id="view-dashboard" class="view active">
-<div class="hero"><div><p class="eyebrow">أهلاً بك</p><h1 id="helloName">بطل، جاهز للتمرين؟</h1><p class="muted">كل تقدم يبدأ بحصة واحدة.</p></div><div class="hero-badge">DZ<br><small>OFFLINE</small></div></div>
+<div class="hero"><div><p class="eyebrow">أهلاً بك</p><h1 id="helloName">بطل، جاهز للتمرين؟</h1><p class="muted">كل تقدم يبدأ بحصة واحدة.</p></div><div class="hero-badge">🐯<br><small>OFFLINE</small></div></div>
 <div class="stats-grid"><article class="stat"><span>الوزن</span><strong id="dashWeight">—</strong><small>كغ</small></article><article class="stat"><span>الهدف</span><strong id="dashGoal">—</strong></article><article class="stat"><span>التمارين</span><strong id="dashWorkouts">0</strong><small>حصة</small></article><article class="stat"><span>الإنجاز</span><strong id="dashStreak">0</strong><small>يوم</small></article></div>
 <div class="section-head"><h2>تمرين اليوم</h2><button class="text-btn" data-nav="workouts">كل البرامج</button></div>
 <article class="workout-card" id="todayCard"><div class="workout-icon">🏋️</div><div class="workout-info"><h3>ابدأ أول تمرين</h3><p>أنشئ ملفك واختر هدفك ليتم إعداد البرنامج.</p></div><button class="primary" data-nav="profile">ابدأ</button></article>
 <div class="section-head"><h2>الوصول السريع</h2></div><div class="quick-grid"><button class="quick" data-nav="profile">👤<span>ملفي</span></button><button class="quick" data-nav="workouts">🏋️<span>التمارين</span></button><button class="quick" data-nav="progress">📈<span>تطوري</span></button><button class="quick" data-nav="nutrition">🥗<span>التغذية</span></button><button class="quick" data-nav="payments">💳<span>المدفوعات</span></button><button class="quick" data-nav="attendance">📋<span>البونتاج</span></button></div>
 </section>
 <section id="view-profile" class="view"><div class="page-title"><div><p class="eyebrow">البيانات الشخصية</p><h1>ملفي الرياضي</h1></div><span class="offline-pill">● بدون إنترنت</span></div><form id="profileForm" class="panel form-grid"><label>الاسم الكامل<input id="name" maxlength="60" placeholder="مثال: محمد أمين"></label><label>العمر<input id="age" type="number" min="12" max="100" placeholder="25"></label><label>الطول (سم)<input id="height" type="number" min="100" max="250" placeholder="175"></label><label>الوزن (كغ)<input id="weight" type="number" min="30" max="300" step="0.1" placeholder="75"></label><label>المستوى<select id="level"><option value="beginner">مبتدئ</option><option value="intermediate">متوسط</option><option value="advanced">متقدم</option></select></label><label>الهدف<select id="goal"><option value="muscle">بناء العضلات</option><option value="cut">تنشيف</option><option value="strength">القوة</option><option value="fitness">لياقة</option></select></label><label>سعر الاشتراك الشهري (دج)<input id="monthlyFee" type="number" min="0" step="100" placeholder="2500"></label><label>أيام التدريب في الأسبوع<input id="days" type="number" min="1" max="7" value="4"></label><button class="primary full" type="submit">حفظ الملف</button></form><div id="saveMsg" class="success hidden">تم حفظ معلوماتك على هذا الجهاز.</div></section>
-<section id="view-workouts" class="view"><div class="page-title"><div><p class="eyebrow">خطة التدريب</p><h1>برامجك</h1></div><button class="primary" id="completeWorkout">✓ أنهيت تمريناً</button></div><div id="workoutList" class="cards"></div></section>
+<section id="view-workouts" class="view"><div class="page-title"><div><p class="eyebrow">خطة التدريب</p><h1>برنامجك الأسبوعي</h1><p class="muted">خطة تلقائية حسب هدفك ومستواك وعدد أيام التدريب.</p></div><button class="primary" id="completeWorkout">✓ أنهيت تمريناً</button></div><div class="training-summary"><div><span>الهدف</span><strong id="planGoal">—</strong></div><div><span>المستوى</span><strong id="planLevel">—</strong></div><div><span>الأيام</span><strong id="planDays">—</strong></div></div><div id="workoutList" class="cards"></div></section>
 <section id="view-progress" class="view"><div class="page-title"><div><p class="eyebrow">النتائج</p><h1>تطوري</h1></div></div><div class="panel"><div class="chart-head"><div><span class="muted">الوزن الحالي</span><strong id="progressWeight">—</strong></div><div><span class="muted">عدد الحصص</span><strong id="progressSessions">0</strong></div></div><div id="weightChart" class="bars"></div></div><div class="panel"><h2>سجل القياسات</h2><form id="measurementForm" class="inline-form"><input id="mWeight" type="number" step="0.1" placeholder="الوزن كغ"><input id="mChest" type="number" step="0.1" placeholder="الصدر سم"><input id="mWaist" type="number" step="0.1" placeholder="الخصر سم"><button class="primary">إضافة</button></form><div id="measurementList"></div></div></section>
 <section id="view-payments" class="view"><div class="page-title"><div><p class="eyebrow">الاشتراكات</p><h1>المدفوعات</h1></div><button class="primary" id="addPaymentBtn">+ تسجيل دفع</button></div><div class="stats-grid"><article class="stat"><span>المدفوع هذا الشهر</span><strong id="paidMonth">0</strong><small>دج</small></article><article class="stat"><span>المتبقي</span><strong id="dueAmount">0</strong><small>دج</small></article><article class="stat"><span>آخر دفع</span><strong id="lastPayment">—</strong></article><article class="stat"><span>حالة الاشتراك</span><strong id="membershipStatus">غير محدد</strong></article></div><div class="panel"><h2>تسجيل دفعة جديدة</h2><form id="paymentForm" class="form-grid"><label>المبلغ (دج)<input id="payAmount" type="number" min="0" step="100" placeholder="مثال: 2500"></label><label>نوع الدفع<select id="payType"><option>اشتراك شهري</option><option>اشتراك أسبوعي</option><option>تجديد</option><option>دفعة أخرى</option></select></label><label>تاريخ الدفع<input id="payDate" type="date"></label><label>طريقة الدفع<select id="payMethod"><option>نقداً</option><option>تحويل بريدي</option><option>CCP</option><option>بطاقة</option></select></label><label class="full">ملاحظة<input id="payNote" maxlength="120" placeholder="اختياري"></label><button class="primary full" type="submit">حفظ الدفعة</button></form></div><div class="panel"><h2>سجل المدفوعات</h2><div id="paymentList"></div></div></section>
 <section id="view-attendance" class="view"><div class="page-title"><div><p class="eyebrow">الحضور اليومي</p><h1>البونتاج</h1></div></div><div class="stats-grid"><article class="stat"><span>حضور اليوم</span><strong id="todayAttendance">0</strong><small>منخرط</small></article><article class="stat"><span>الحضور هذا الشهر</span><strong id="monthAttendance">0</strong><small>دخول</small></article><article class="stat"><span>آخر دخول</span><strong id="lastAttendance">—</strong></article><article class="stat"><span>آخر سلسلة حضور</span><strong id="attendanceStreak">0</strong><small>يوم</small></article></div><div class="panel"><div class="page-title"><div><h2>تسجيل حضور</h2><p class="muted">ابحث عن المنخرط وسجّل دخوله مباشرة</p></div></div><input id="attendanceMemberSearch" class="input" placeholder="🔎 ابحث باسم المنخرط أو رقم الهاتف" autocomplete="off"><div id="attendanceMemberList"></div></div><div class="panel"><div class="page-title"><div><h2>حضور اليوم</h2><p class="muted">قائمة المنخرطين الذين سجّلوا الدخول اليوم</p></div></div><div id="attendanceList"></div></div></section>
@@ -66,7 +46,7 @@
   <button type="button" id="closeQrModal">إغلاق</button>
  </div>
 </div>
-</div></section><section id="view-more" class="view"><div class="page-title"><div><p class="eyebrow">GYM DZ PRO</p><h1>المزيد</h1></div></div><div class="quick-grid" id="moreMenuGrid"><button class="quick" data-more-nav="ai">🤖<span>المدرب الذكي</span></button><button class="quick" data-more-nav="workouts">🏋️<span>التمارين</span></button><button class="quick" data-more-nav="progress">📈<span>التطور</span></button><button class="quick" data-more-nav="nutrition">🥗<span>التغذية</span></button><button class="quick" data-more-nav="profile">👤<span>الملف الشخصي</span></button><button class="quick" data-more-nav="settings">⚙️<span>الإعدادات</span></button></div></section><section id="view-ai" class="view">
+</div></section><section id="view-more" class="view"><div class="page-title"><div><p class="eyebrow">TIGRE</p><h1>المزيد</h1></div></div><div class="more-groups"><div class="more-group"><h2>🤖 الذكاء والتحليل</h2><div class="quick-grid"><button class="quick" data-more-nav="ai">🤖<span>المدرب الذكي</span></button></div></div><div class="more-group"><h2>🏋️ التدريب</h2><div class="quick-grid"><button class="quick" data-more-nav="workouts">🏋️<span>برامج التمرين</span></button><button class="quick" data-more-nav="progress">📈<span>تطوري</span></button></div></div><div class="more-group"><h2>🥗 الصحة والملف</h2><div class="quick-grid"><button class="quick" data-more-nav="nutrition">🥗<span>التغذية</span></button><button class="quick" data-more-nav="profile">👤<span>ملفي الرياضي</span></button></div></div><div class="more-group"><h2>⚙️ النظام</h2><div class="quick-grid"><button class="quick" data-more-nav="settings">⚙️<span>الإعدادات</span></button></div></div></div></section><section id="view-ai" class="view">
 <div class="page-title">
 <div>
 <p class="eyebrow">ذكاء محلي</p>
@@ -76,7 +56,7 @@
 </div>
 
 <div class="panel">
-<h2>تحليل GYM DZ PRO</h2>
+<h2>تحليل TIGRE</h2>
 <p class="muted">التحليل يتم محلياً من البيانات الموجودة على الجهاز، بدون إنترنت.</p>
 <div id="aiInsights" class="ai-grid"></div>
 </div>
@@ -87,18 +67,22 @@
 </div>
 
 <div class="panel">
-<h2>اسأل GYM DZ PRO</h2>
+<h2>اسأل TIGRE</h2>
 <form id="aiAskForm" class="ai-form">
+<div class="ai-voice-input">
 <input id="aiQuestion" placeholder="مثال: شكون اشتراكه يخلص هذا الأسبوع؟" autocomplete="off">
+<button type="button" id="aiMic" class="ai-voice-btn" aria-label="تحدث مع المدرب">🎙️</button>
+</div>
 <button class="primary" type="submit">تحليل</button>
 </form>
 <pre id="aiAnswer" class="ai-answer hidden"></pre>
+<button type="button" id="aiSpeak" class="ai-speak-btn hidden">🔊 اسمع الجواب</button>
 </div>
-</section><section id="view-settings" class="view"><div class="page-title"><div><p class="eyebrow">التطبيق</p><h1>الإعدادات</h1></div></div><div class="panel settings"><button id="exportBtn">📦 تصدير نسخة احتياطية</button><label class="file-btn">📥 استرجاع نسخة احتياطية<input id="importFile" type="file" accept="application/json"></label><button id="resetBtn" class="danger">حذف كل بياناتي</button><div class="about"><b>GYM DZ PRO</b><p>نسخة Offline — البيانات محفوظة محلياً على جهازك.</p><p>الإصدار 1.0.0</p></div></div></section>
+</section><section id="view-settings" class="view"><div class="page-title"><div><p class="eyebrow">التطبيق</p><h1>الإعدادات</h1></div></div><div class="panel settings"><button id="exportBtn">📦 تصدير نسخة احتياطية</button><label class="file-btn">📥 استرجاع نسخة احتياطية<input id="importFile" type="file" accept="application/json"></label><button id="resetBtn" class="danger">حذف كل بياناتي</button><div class="about"><b>TIGRE</b><p>نسخة Offline — البيانات محفوظة محلياً على جهازك.</p><p>الإصدار 1.0.0</p></div></div></section>
 </main>
-<nav class="bottom-nav"><button data-nav="dashboard" class="active">⌂<span>الرئيسية</span></button><button data-nav="workouts">🏋️<span>التمرين</span></button><button data-nav="progress">📈<span>التطور</span></button><button data-nav="nutrition">🥗<span>التغذية</span></button><button data-nav="payments">💳<span>الدفع</span></button><button data-nav="attendance">📋<span>البونتاج</span></button><button data-nav="members">👥<span>المنخرطين</span></button><button data-nav="more">☰<span>المزيد</span></button></nav>
+<nav class="bottom-nav"><button data-nav="dashboard" class="active">⌂<span>الرئيسية</span></button><button data-nav="workouts">🏋️<span>التمرين</span></button><button data-nav="attendance">📋<span>البونتاج</span></button><button data-nav="members">👥<span>المنخرطين</span></button><button data-nav="payments">💳<span>الدفع</span></button><button data-nav="more">☰<span>المزيد</span></button></nav>
 <div id="toast" class="toast"></div>
 </div><script src="qrcode.js"></script>
 <script src="jsQR.js"></script>
-<script src="ai-engine.js"></script><script src="app.js"></script>
+<script src="ai-engine.js"></script><script src="app.js?v=20260923"></script>
 </body></html>

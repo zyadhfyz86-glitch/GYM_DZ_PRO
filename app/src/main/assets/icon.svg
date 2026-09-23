@@ -1,1 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="110" fill="#07100e"/><rect x="60" y="60" width="392" height="392" rx="90" fill="#39e58c"/><path d="M145 175h55v-35h45v232h-45v-35h-55v-45h55v-72h-55zm222 0h-55v-35h-45v232h45v-35h55v-45h-55v-72h55z" fill="#07100e"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<defs>
+<radialGradient id="b"><stop stop-color="#18352d"/><stop offset="1" stop-color="#050908"/></radialGradient>
+<linearGradient id="f" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset=".55" stop-color="#e9eeee"/><stop offset="1" stop-color="#aeb8b8"/></linearGradient>
+</defs>
+<rect width="512" height="512" rx="112" fill="url(#b)"/>
+<path d="M105 175L78 75Q76 58 94 68L178 116ZM407 175L434 75Q436 58 418 68L334 116Z" fill="url(#f)"/>
+<path d="M256 83C177 83 116 139 113 224C109 319 160 408 256 449C352 408 403 319 399 224C396 139 335 83 256 83Z" fill="url(#f)"/>
+<g fill="#151b1a">
+<path d="M221 94L239 169L207 137ZM256 88L256 174L239 131ZM291 94L273 169L305 137Z"/>
+<path d="M169 126L214 184L178 160ZM343 126L298 184L334 160Z"/>
+<path d="M125 230L204 247L140 258ZM123 274L201 274L139 296ZM139 319L202 299L157 342Z"/>
+<path d="M387 230L308 247L372 258ZM389 274L311 274L373 296ZM373 319L310 299L355 342Z"/>
+</g>
+<path d="M151 217Q187 183 229 218Q192 250 151 217ZM361 217Q325 183 283 218Q320 250 361 217Z" fill="#080b0b"/>
+<ellipse cx="193" cy="218" rx="9" ry="15" fill="#d9ffef"/>
+<ellipse cx="319" cy="218" rx="9" ry="15" fill="#d9ffef"/>
+<ellipse cx="207" cy="309" rx="72" ry="58" fill="#f8faf9"/>
+<ellipse cx="305" cy="309" rx="72" ry="58" fill="#f8faf9"/>
+<path d="M220 282Q256 260 292 282L280 311Q256 328 232 311Z" fill="#111615"/>
+<path d="M256 311V343M256 343Q226 365 196 348M256 343Q286 365 316 348" fill="none" stroke="#111615" stroke-width="9" stroke-linecap="round"/>
+<g fill="#596260"><circle cx="158" cy="302" r="4"/><circle cx="174" cy="316" r="4"/><circle cx="157" cy="329" r="4"/><circle cx="354" cy="302" r="4"/><circle cx="338" cy="316" r="4"/><circle cx="355" cy="329" r="4"/></g>
+<path d="M224 372Q256 392 288 372Q278 414 256 421Q234 414 224 372Z" fill="#f5f7f6"/>
+</svg>
